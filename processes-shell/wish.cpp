@@ -1,48 +1,60 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <unistd.h>
 #include <sys/wait.h>
 
-/*
+
 std::vector<std::string> parseCmd(std::string cmd){
-	std::vector<std::string> str;
-	return str;
-}*/
+	std::istringstream ss(cmd);
+	std::vector<std::string> parsedCmd;
+	std::string word;
+	while(ss >> word){
+		parsedCmd.push_back(word);
+	}
+	return parsedCmd;
+}
 
 int main(int argc, char *argv[]){
 	
 	std::vector<std::string> paths;
+	std::string cmd;
+	std::vector<std::string> cmdParsed;
 	std::string wd;
 	
-	//std::cout << "startup\n";
+	paths.push_back("/bin/");
 	
 	if(argc == 1){
 		while(1){
 			std::cout << "wish> ";
-			
-			std::string cmd;
 			std::getline(std::cin, cmd);
-			//cmd = parseCmd(cmd)[0];
+			cmdParsed = parseCmd(cmd);
 			
-			if(cmd == "exit"){
+			if(cmdParsed[0] == "exit"){
 				exit(0);
 			}
-			else if(cmd == "path"){
+			else if(cmdParsed[0] == "path"){
 				
 			}
-			else if(cmd == "ls"){
+			else if(cmdParsed[0] == "cd"){
+				
+			}
+			else{
+				//std::cout << "forking...\n";
 				pid_t pid = fork();
 				if(pid == 0){
-					char *args[2];
-					args[0] = (char*)"/bin/ls";
-					args[1] = NULL;
-					execv(args[0], args);
+					for(size_t i = 0; i < paths.size(); i++){
+						char *args[2];
+						args[0] = (char*)(paths[i] + cmdParsed[0]).c_str();
+						args[1] = NULL;
+						execv(args[0], args);   // exec() will kill process if command success.
+					}
+					std::cout << "-wish: " + cmd + ": command not found\n";
 					exit(1);
 				}	
 				wait(NULL);
 			}
-			
 			
 			//std::cout << cmd << std::endl; 
 		}
