@@ -23,6 +23,7 @@ int main(int argc, char *argv[]){
 	std::vector<std::string> cmdParsed;
 	std::string wd;
 	
+	paths.push_back("");
 	paths.push_back("/bin/");
 	
 	if(argc == 1){
@@ -31,7 +32,8 @@ int main(int argc, char *argv[]){
 			std::getline(std::cin, cmd);
 			cmdParsed = parseCmd(cmd);
 			
-			if(cmdParsed[0] == "exit"){
+			if(cmdParsed.size() == 0);
+			else if(cmdParsed[0] == "exit"){
 				exit(0);
 			}
 			else if(cmdParsed[0] == "path"){
@@ -41,7 +43,6 @@ int main(int argc, char *argv[]){
 				
 			}
 			else{
-				//std::cout << "forking...\n";
 				pid_t pid = fork();
 				if(pid == 0){
 					for(size_t i = 0; i < paths.size(); i++){
@@ -55,8 +56,6 @@ int main(int argc, char *argv[]){
 				}	
 				wait(NULL);
 			}
-			
-			//std::cout << cmd << std::endl; 
 		}
 	}
 	else if(argc == 2){
