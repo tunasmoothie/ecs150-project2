@@ -20,7 +20,6 @@ std::vector<std::string> parseCmd(std::string cmd_raw){
 
 int main(int argc, char *argv[]){
 	
-	//std::string wd = "./";
 	std::string cmd_raw;
 	std::vector<std::string> cmd_parsed;
 	std::vector<std::string> paths;
@@ -39,9 +38,11 @@ int main(int argc, char *argv[]){
 				exit(0);
 			}
 			else if(cmd_parsed[0] == "path"){
-				char buf[4096];
-				getwd(buf);
-				std::cout << buf << std::endl;
+				paths.clear();
+				paths.push_back("");
+				for(size_t i = 1; i < cmd_parsed.size(); i++){
+					paths.push_back(cmd_parsed[i]);
+				}
 			}
 			else if(cmd_parsed[0] == "cd"){
 				if(cmd_parsed.size() != 2);
