@@ -32,12 +32,23 @@ int main(int argc, char *argv[]){
 		cmd_parsed = parseCmd(cmd_raw);
 		if(cmd_parsed.size() == 0);
 			else if(cmd_parsed[0] == "exit"){
-				exit(0);
+				if(cmd_parsed.size() != 1)
+					std::cerr << "An error has occurred" << std::endl;
+				else
+					exit(0);
 			}
 			else if(cmd_parsed[0] == "path"){
 				paths.clear();
 				paths.push_back("");
 				for(size_t i = 1; i < cmd_parsed.size(); i++){
+					if(cmd_parsed[i][0] != '/')
+						cmd_parsed[i] = "/" + cmd_parsed[i];
+					if(cmd_parsed[i][cmd_parsed[i].size()-1] != '/')
+						cmd_parsed[i] += "/";
+					char tmp[2048];
+					getcwd(tmp, 2048);
+					cmd_parsed[i] = tmp + cmd_parsed[i];
+					//std::cerr << cmd_parsed[i] << std::endl;
 					paths.push_back(cmd_parsed[i]);
 				}
 			}
@@ -65,7 +76,8 @@ int main(int argc, char *argv[]){
 						std::strcpy(cmd_path, (paths[i] + cmd_parsed[0]).c_str());
 						execv(cmd_path, args);   // exec() will kill process if command success.
 					}
-					std::cout << "-wish: " << "exec failed errno: " << errno << "\n";
+					std::cerr << "An error has occurred" << std::endl;
+					//std::cout << "-wish: " << "exec failed errno: " << errno << "\n";
 					exit(1);
 				}	
 				wait(NULL);
