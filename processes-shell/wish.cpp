@@ -2,6 +2,7 @@
 #include <string>
 #include <cstring>
 #include <sstream>
+#include <fstream>
 #include <vector>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -26,14 +27,10 @@ int main(int argc, char *argv[]){
 	paths.push_back("");
 	paths.push_back("/bin/");
 	
-	
-	if(argc == 1){
-		while(1){
-			std::cout << "wish> ";
-			std::getline(std::cin, cmd_raw);
-			cmd_parsed = parseCmd(cmd_raw);
-			
-			if(cmd_parsed.size() == 0);
+	// ========================================= command interpretation lambda =========================================
+	auto interpretCmd = [&](){
+		cmd_parsed = parseCmd(cmd_raw);
+		if(cmd_parsed.size() == 0);
 			else if(cmd_parsed[0] == "exit"){
 				exit(0);
 			}
@@ -45,30 +42,27 @@ int main(int argc, char *argv[]){
 				}
 			}
 			else if(cmd_parsed[0] == "cd"){
-				if(cmd_parsed.size() != 2);
-				else if(chdir((char*)cmd_parsed[1].c_str()) == 0){
-					continue;
-				}
-					
-				std::cerr << "An error has occurred" << std::endl;
+				if(cmd_parsed.size() != 2)
+					std::cerr << "An error has occurred" << std::endl;
+				else if(chdir((char*)cmd_parsed[1].c_str()) == 0);
+				else
+					std::cerr << "An error has occurred" << std::endl;
 			}
 			else{
 				pid_t pid = fork();
 				if(pid == 0){
 					char *args[cmd_parsed.size() + 1];
 					
+					// string to char array conversion for args
 					for(size_t i = 0; i < cmd_parsed.size(); i++){
 						args[i] = new char[cmd_parsed[i].size() + 1];
 						std::strcpy(args[i], cmd_parsed[i].c_str());
-						//std::cout << args[i] << "   \n";
 					}
-					
 					args[cmd_parsed.size()] = NULL;
-					//std::cout << args[0] << "  " << args[1] << "  "  << args[2] << "  "  << args[3] << "  \n";
+					
 					for(size_t i = 0; i < paths.size(); i++){
 						char cmd_path[paths[i].size() + cmd_parsed[0].size() + 1];
 						std::strcpy(cmd_path, (paths[i] + cmd_parsed[0]).c_str());
-						//std::cout << cmd_path << "   \n";
 						execv(cmd_path, args);   // exec() will kill process if command success.
 					}
 					std::cout << "-wish: " << "exec failed errno: " << errno << "\n";
@@ -76,16 +70,29 @@ int main(int argc, char *argv[]){
 				}	
 				wait(NULL);
 			}
+	};
+	
+	// ============================================= interactive mode =============================================
+	if(argc == 1){
+		while(1){
+			std::cout << "wish> ";
+			std::getline(std::cin, cmd_raw);
+			interpretCmd();
 		}
 	}
+	// ============================================= batch mode =============================================
 	else if(argc == 2){
-		
+		std::ifstream batchFile;
+		batchFile.open(argv[1]);
+		while(std::getline(batchFile, cmd_raw)){
+			interpretCmd();
+		}
+		batchFile.close();
 	}
 	else{
 		std::cerr << "An error has occured" << std::endl;
 		exit(1);
 	}
-
 	exit(0);
 }
 
