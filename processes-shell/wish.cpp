@@ -5,6 +5,7 @@
 #include <vector>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 
 std::vector<std::string> parseCmd(std::string cmd_raw){
@@ -53,22 +54,23 @@ int main(int argc, char *argv[]){
 			else{
 				pid_t pid = fork();
 				if(pid == 0){
-					char *args[cmd_parsed.size()];
+					char *args[cmd_parsed.size() + 1];
 					
 					for(size_t i = 0; i < cmd_parsed.size(); i++){
-						char *tmp = new char[cmd_parsed[i].size() + 1];
-						std::strcpy(tmp, cmd_parsed[i].c_str());
-						std::cout << tmp << "   ";
-						args[i] = tmp;
-						std::cout << args[i] << "\n";
+						args[i] = new char[cmd_parsed[i].size() + 1];
+						std::strcpy(args[i], cmd_parsed[i].c_str());
+						//std::cout << args[i] << "   \n";
 					}
-					//std::cout << args[0] << "  " << args[1] << "  "  << args[2] << "  "  << args[2] << "  \n";
+					
+					args[cmd_parsed.size()] = NULL;
+					//std::cout << args[0] << "  " << args[1] << "  "  << args[2] << "  "  << args[3] << "  \n";
 					for(size_t i = 0; i < paths.size(); i++){
 						char cmd_path[paths[i].size() + cmd_parsed[0].size() + 1];
 						std::strcpy(cmd_path, (paths[i] + cmd_parsed[0]).c_str());
+						//std::cout << cmd_path << "   \n";
 						execv(cmd_path, args);   // exec() will kill process if command success.
 					}
-					std::cout << "-wish: " + cmd_raw + ": command not found\n";
+					std::cout << "-wish: " << "exec failed errno: " << errno << "\n";
 					exit(1);
 				}	
 				wait(NULL);
