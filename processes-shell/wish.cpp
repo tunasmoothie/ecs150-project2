@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
 						args[i] = tmp;
 						//std::cout << args[i] << "\n";
 					}
-					//std::cout << args[0] << "  " << args[1] << "  "  << args[2] << "  \n";
+					std::cout << args[0] << "  " << args[1] << "  "  << args[2] << "  "  << args[2] << "  \n";
 					for(size_t i = 0; i < paths.size(); i++){
 						char cmd_path[paths[i].size() + cmd_parsed[0].size() + 1];
 						std::strcpy(cmd_path, (paths[i] + cmd_parsed[0]).c_str());
