@@ -48,7 +48,6 @@ int main(int argc, char *argv[]){
 					char tmp[2048];
 					getcwd(tmp, 2048);
 					cmd_parsed[i] = tmp + cmd_parsed[i];
-					//std::cerr << cmd_parsed[i] << std::endl;
 					paths.push_back(cmd_parsed[i]);
 				}
 			}
@@ -77,7 +76,6 @@ int main(int argc, char *argv[]){
 						execv(cmd_path, args);   // exec() will kill process if command success.
 					}
 					std::cerr << "An error has occurred" << std::endl;
-					//std::cout << "-wish: " << "exec failed errno: " << errno << "\n";
 					exit(1);
 				}	
 				wait(NULL);
