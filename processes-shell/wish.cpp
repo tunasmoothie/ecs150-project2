@@ -30,12 +30,18 @@ std::vector<std::vector<std::string>> parseLine(std::vector<std::string> line, i
 	// 0 = Normal, 1 = Redirect, 2 = Parallel
 	mode = 0;
 	for(size_t i = 0; i < line.size(); i ++){
-		parsedLine[index].push_back(line[i]);
 		if(line[i] == ">"){
-			mode = (mode == 1) ? (printError(), exit(1), 0) : 1;
-		    parsedLine.push_back(tmp);
-			index++;
-		}	
+			if(mode == 1 || i == 0 || line.size() != 3){
+				//std::cout << "sdfsdf";
+				printError();
+				exit(0);
+			}
+			else
+				mode = 1;
+		}
+		else{
+			parsedLine[index].push_back(line[i]);
+		}
 	}
 
 	
@@ -89,10 +95,11 @@ int main(int argc, char *argv[]){
 			// 0 = Normal, 1 = Redirect, 2 = Parallel
 			int mode = 0;
 			std::vector<std::vector<std::string>> commands = parseLine(input_str, mode);
+			
 			/*
 			for(auto a : commands){
 				for(auto b : a){
-					std::cout << b;
+					std::cout << b << "  ";
 				}
 				std::cout << std::endl;
 			}*/
@@ -123,10 +130,6 @@ int main(int argc, char *argv[]){
 				}
 			}	
 			else if(mode == 1){
-				if(commands.size() != 2){
-					printError();
-					exit(0);  //unsure
-				}
 				std::cout << "Redirect" << std::endl; //placeholder
 			}
 		}
