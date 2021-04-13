@@ -78,7 +78,10 @@ int main(int argc, char *argv[]){
 					std::cerr << "An error has occurred" << std::endl;
 					exit(1);
 				}	
-				wait(NULL);
+				else{
+					pid_t wait = wait(NULL);
+				}
+				
 			}
 	};
 	
