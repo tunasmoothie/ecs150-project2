@@ -110,11 +110,14 @@ std::vector<std::vector<std::string>> processLine(std::vector<std::string> line,
 		}	
 	}
 	else if(type == 2){
-		//auto it1 = line.begin(), it2 = line.begin();
-		//for(it2; it2 != line.end(); it2++){
-			
-		//}
-		
+		auto it1 = line.begin(), it2 = line.begin();
+		while(it2++ != line.end()){
+			if(*it2 == "&"){
+				std::vector<std::string> cmd(it1, it2);
+				output.push_back(cmd);
+				it1 = it2+1;
+			}
+		}
 	}
 
 	return output;
@@ -165,12 +168,16 @@ int main(int argc, char *argv[]){
 			int type = 0;
 			auto processed_line = processLine(input_str_vec, type, mode);	
 			
-			pid_t pid = fork();
-			if(pid == 0){
-				if(type == 0){
+			if(type == 0){
+				pid_t pid = fork();
+				if(pid == 0){
 					executeCmd(input_str_vec, paths);
-				}	
-				else if(type == 1){
+				}
+				else wait(NULL);
+			}
+			else if(type == 1){
+				pid_t pid = fork();
+				if(pid == 0){
 					int fd = open(processed_line[1][0].c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 					dup2(fd, 1);
 					dup2(fd, 2);
@@ -178,12 +185,10 @@ int main(int argc, char *argv[]){
 					executeCmd(processed_line[0], paths);
 					exit(0);
 				}
-				else if(type == 2){
-					
-				}
-			}	
-			else{
-				wait(NULL);
+				else wait(NULL);
+			}
+			else if(type == 2){
+				
 			}
 		}
 	    
