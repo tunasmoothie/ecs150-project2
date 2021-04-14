@@ -191,7 +191,6 @@ int main(int argc, char *argv[]){
 				else wait(NULL);
 			}
 			else if(type == 2){
-				//std::vector<pid_t> child_ids;
 				int child_cnt;
 				
 				for(auto cmd : processed_line){
@@ -203,13 +202,12 @@ int main(int argc, char *argv[]){
 						executeCmd(cmd, paths);
 					}
 					else{
-						//std::cout << "child id: " << pid << std::endl;
 						child_cnt++;
-						//child_ids.push_back(pid);
 					}
 				}
 				
 				while(child_cnt != 0){
+					//std::cout << "child " << wait(NULL) << "terminated\n";
 					wait(NULL);
 					child_cnt--;
 				}
