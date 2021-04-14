@@ -111,13 +111,16 @@ std::vector<std::vector<std::string>> processLine(std::vector<std::string> line,
 	}
 	else if(type == 2){
 		auto it1 = line.begin(), it2 = line.begin();
-		while(it2++ != line.end()){
+		while(it2 != line.end()){
 			if(*it2 == "&"){
 				std::vector<std::string> cmd(it1, it2);
 				output.push_back(cmd);
 				it1 = it2+1;
 			}
+			it2++;
 		}
+		std::vector<std::string> cmd(it1, line.end());
+		output.push_back(cmd);
 	}
 
 	return output;
@@ -188,7 +191,28 @@ int main(int argc, char *argv[]){
 				else wait(NULL);
 			}
 			else if(type == 2){
+				//std::vector<pid_t> child_ids;
+				int child_cnt;
 				
+				for(auto cmd : processed_line){
+					if(cmd.empty())
+						continue;
+					
+					pid_t pid = fork();
+					if(pid == 0){
+						executeCmd(cmd, paths);
+					}
+					else{
+						//std::cout << "child id: " << pid << std::endl;
+						child_cnt++;
+						//child_ids.push_back(pid);
+					}
+				}
+				
+				while(child_cnt != 0){
+					wait(NULL);
+					child_cnt--;
+				}
 			}
 		}
 	    
