@@ -145,6 +145,7 @@ int main(int argc, char *argv[]){
 				else if(mode == 1){
 					int fd = open(processed_line[1][0].c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 					dup2(fd, 1);
+					dup2(fd, 2);
 					close(fd);
 					executeCmd(processed_line[0], paths);
 					exit(0);
@@ -167,15 +168,18 @@ int main(int argc, char *argv[]){
 	}
 	// ============================================= batch mode =============================================
 	else if(argc == 2){
-		std::ifstream batchFile;
-		batchFile.open(argv[1]);
-		while(std::getline(batchFile, input_raw)){
+		std::ifstream batFile(argv[1]);
+		if(batFile.fail()){
+			printError();
+			exit(1);
+		}
+		while(std::getline(batFile, input_raw)){
 			interpretCmd();
 		}
-		batchFile.close();
+		batFile.close();
 	}
 	else{
-		std::cerr << "An error has occured" << std::endl;
+		printError();
 		exit(1);
 	}
 	exit(0);
