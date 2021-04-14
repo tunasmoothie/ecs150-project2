@@ -55,16 +55,16 @@ std::vector<std::vector<std::string>> processLine(std::vector<std::string> line,
 		if(symbolPos != std::string::npos){
 			type = 1;
 			if(line[i].size() != 1){
+				std::string tmp = line[i];
 				line.pop_back();
 				int k = 0;
-				std::string p1 = line[i].substr(0, symbolPos);
-				std::string p2 = line[i].substr(symbolPos+1, line[i].size());
+				std::string p1 = tmp.substr(0, symbolPos);
+				std::string p2 = tmp.substr(symbolPos+1, tmp.size());
 				if(!p1.empty())
 					line.insert(line.begin()+i+(k++), p1);
 				line.insert(line.begin()+i+(k++), ">");
 				if(!p2.empty())
 					line.insert(line.begin()+i+(k++), p2);
-				i += k;
 			}
 		}
 	}
@@ -73,16 +73,16 @@ std::vector<std::vector<std::string>> processLine(std::vector<std::string> line,
 		if(symbolPos != std::string::npos){
 			type = 2;
 			if(line[i].size() != 1){
+				std::string tmp = line[i];
 				line.pop_back();
 				int k = 0;
-				std::string p1 = line[i].substr(0, symbolPos);
-				std::string p2 = line[i].substr(symbolPos+1, line[i].size());
+				std::string p1 = tmp.substr(0, symbolPos);
+				std::string p2 = tmp.substr(symbolPos+1, tmp.size());
 				if(!p1.empty())
 					line.insert(line.begin()+i+(k++), p1);
 				line.insert(line.begin()+i+(k++), "&");
 				if(!p2.empty())
 					line.insert(line.begin()+i+(k++), p2);
-				i += k;
 			}
 		}
 	}
@@ -110,6 +110,11 @@ std::vector<std::vector<std::string>> processLine(std::vector<std::string> line,
 		}	
 	}
 	else if(type == 2){
+		//auto it1 = line.begin(), it2 = line.begin();
+		//for(it2; it2 != line.end(); it2++){
+			
+		//}
+		
 	}
 
 	return output;
@@ -172,6 +177,9 @@ int main(int argc, char *argv[]){
 					close(fd);
 					executeCmd(processed_line[0], paths);
 					exit(0);
+				}
+				else if(type == 2){
+					
 				}
 			}	
 			else{
