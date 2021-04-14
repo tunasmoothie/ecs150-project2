@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
 
 void printError(){
 	std::cerr << "An error has occurred" << std::endl;
@@ -23,32 +24,52 @@ std::vector<std::string> convertInputToStr(std::string input_raw){
 }
 
 std::vector<std::vector<std::string>> parseLine(std::vector<std::string> line, int &mode){
-	std::vector<std::vector<std::string>> parsedLine;
-	int index = 0;
-	std::vector<std::string> tmp;
-	parsedLine.push_back(tmp);
+	
+	std::vector<std::vector<std::string>> output;
 	// 0 = Normal, 1 = Redirect, 2 = Parallel
 	mode = 0;
-	for(size_t i = 0; i < line.size(); i ++){
-		if(line[i] == ">"){
-			if(mode == 1 || i == 0 || line.size() != 3){
-				//std::cout << "sdfsdf";
-				printError();
-				exit(0);
+	
+	//separate operators out
+	for(size_t i = 0; i < line.size(); i++){
+		size_t symbolPos = line[i].find(">");
+		if(symbolPos != std::string::npos){
+			mode = (mode == 1) ? (printError(), exit(0), 0) : 1;
+			if(line[i].size() != 1){
+				line.pop_back();
+				int k = 0;
+				std::string p1 = line[i].substr(0, symbolPos);
+				std::string p2 = line[i].substr(symbolPos+1, line[i].size());
+				if(!p1.empty())
+					line.insert(line.begin()+i+(k++), p1);
+				line.insert(line.begin()+i+(k++), ">");
+				if(!p2.empty())
+					line.insert(line.begin()+i+(k++), p2);
+				i += k;
 			}
-			else
-				mode = 1;
-		}
-		else{
-			parsedLine[index].push_back(line[i]);
 		}
 	}
+		
+	if(mode == 1){
+		if(line[0] == ">" || line[line.size()-1] == ">"){
+			printError();
+			exit(0);
+		}
+		
+		auto it = line.begin();
+		while(*it != ">") it++;
+		std::vector<std::string> cmd(line.begin(), it);
+		std::vector<std::string> file(it+1, it+2);
+		if(it+2 != line.end()){
+			printError();
+			exit(0);
+		}
+		
+		output.push_back(cmd);
+		output.push_back(file);
+	}
+	
 
-	
-	if(parsedLine.back().empty())
-		parsedLine.pop_back();
-	
-	return parsedLine;
+	return output;
 }
 
 int main(int argc, char *argv[]){
@@ -94,7 +115,7 @@ int main(int argc, char *argv[]){
 		else{
 			// 0 = Normal, 1 = Redirect, 2 = Parallel
 			int mode = 0;
-			std::vector<std::vector<std::string>> commands = parseLine(input_str, mode);
+			parseLine(input_str, mode);	
 			
 			/*
 			for(auto a : commands){
@@ -104,9 +125,9 @@ int main(int argc, char *argv[]){
 				std::cout << std::endl;
 			}*/
 			
-			if(mode == 0){
-				pid_t pid = fork();
-				if(pid == 0){
+			pid_t pid = fork();
+			if(pid == 0){
+				if(mode == 0){
 					char *args[input_str.size() + 1];
 					
 					// string to char array conversion for args
@@ -119,18 +140,38 @@ int main(int argc, char *argv[]){
 					for(size_t i = 0; i < paths.size(); i++){
 						char cmd_path[paths[i].size() + input_str[0].size() + 1];
 						std::strcpy(cmd_path, (paths[i] + input_str[0]).c_str());
-						execv(cmd_path, args);  
+						execv(cmd_path, args); 
 						// exec() will cut subsequent error handling if command succeeds.
 					}
 					printError();
 					exit(1);
 				}	
-				else{
-					wait(NULL);
+				else if(mode == 1){
+					/*
+					int fd = open(commands[0][2].c_str(), O_RDWR | O_CREAT);
+					dup2(fd, 1);
+					dup2(fd, 2);
+					//close(fd);
+					
+					char *args[commands[0].size() + 1];
+					// string to char array conversion for args
+					for(size_t i = 0; i < commands[0].size(); i++){
+						args[i] = new char[commands[0][i].size() + 1];
+						std::strcpy(args[i], commands[0][i].c_str());
+					}
+					args[input_str.size()] = NULL;
+					for(size_t i = 0; i < paths.size(); i++){
+						char cmd_path[paths[i].size() + input_str[0].size() + 1];
+						std::strcpy(cmd_path, (paths[i] + input_str[0]).c_str());
+						execv(cmd_path, args);  
+						// exec() will cut subsequent error handling if command succeeds.
+					}
+					printError();
+					exit(1);*/
 				}
 			}	
-			else if(mode == 1){
-				std::cout << "Redirect" << std::endl; //placeholder
+			else{
+				wait(NULL);
 			}
 		}
 	    
