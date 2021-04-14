@@ -43,17 +43,17 @@ std::vector<std::string> convertInputToStrVec(std::string input_raw){
 	return converted;
 }
 
-std::vector<std::vector<std::string>> processLine(std::vector<std::string> line, int &mode){
+std::vector<std::vector<std::string>> processLine(std::vector<std::string> line, int &type, const bool &mode){
 	std::vector<std::vector<std::string>> output;
 	
 	// 0 = Normal, 1 = Redirect, 2 = Parallel
-	mode = 0;
+	type = 0;
 	
 	//separate operators out
 	for(size_t i = 0; i < line.size(); i++){
 		size_t symbolPos = line[i].find(">");
 		if(symbolPos != std::string::npos){
-			mode = (mode == 1) ? (printError(), exit(0), 0) : 1;
+			type = 1;
 			if(line[i].size() != 1){
 				line.pop_back();
 				int k = 0;
@@ -68,26 +68,49 @@ std::vector<std::vector<std::string>> processLine(std::vector<std::string> line,
 			}
 		}
 	}
-		
-	if(mode == 1){
-		if(line[0] == ">" || line[line.size()-1] == ">"){
-			printError();
-			exit(0);
+	for(size_t i = 0; i < line.size(); i++){
+		size_t symbolPos = line[i].find("&");
+		if(symbolPos != std::string::npos){
+			type = 2;
+			if(line[i].size() != 1){
+				line.pop_back();
+				int k = 0;
+				std::string p1 = line[i].substr(0, symbolPos);
+				std::string p2 = line[i].substr(symbolPos+1, line[i].size());
+				if(!p1.empty())
+					line.insert(line.begin()+i+(k++), p1);
+				line.insert(line.begin()+i+(k++), "&");
+				if(!p2.empty())
+					line.insert(line.begin()+i+(k++), p2);
+				i += k;
+			}
 		}
-		
-		auto it = line.begin();
-		while(*it != ">") it++;
-		std::vector<std::string> cmd(line.begin(), it);
-		std::vector<std::string> file(it+1, it+2);
-		if(it+2 != line.end()){
-			printError();
-			exit(0);
-		}
-		
-		output.push_back(cmd);
-		output.push_back(file);
 	}
-	
+		
+		
+	if(type == 1){
+		int opCnt;
+		for(auto str : line)
+			if(str == ">") opCnt++;
+		if(line[0] == ">" || line[line.size()-1] == ">" || opCnt > 1){
+			printError();
+			if(mode == 1) exit(0);
+		}
+		else{
+			auto it = line.begin();
+			while(*it != ">") it++;
+			std::vector<std::string> cmd(line.begin(), it);
+			std::vector<std::string> file(it+1, it+2);
+			if(it+2 != line.end()){
+				printError();
+				if(mode == 1) exit(0);
+			}
+			output.push_back(cmd);
+			output.push_back(file);
+		}	
+	}
+	else if(type == 2){
+	}
 
 	return output;
 }
@@ -100,7 +123,7 @@ int main(int argc, char *argv[]){
 	paths.push_back("/bin/");
 	
 	// ========================================= command interpretation lambda =========================================
-	auto interpretCmd = [&](){
+	auto interpretCmd = [&](const bool &mode){ //0 = console, 1 = batch
 		input_str_vec = convertInputToStrVec(input_raw);
 		if(input_str_vec.size() == 0);
 		else if(input_str_vec[0] == "exit"){
@@ -134,15 +157,15 @@ int main(int argc, char *argv[]){
 		// -------- external commands --------
 		else{
 			// 0 = Normal, 1 = Redirect, 2 = Parallel
-			int mode = 0;
-			auto processed_line = processLine(input_str_vec, mode);	
+			int type = 0;
+			auto processed_line = processLine(input_str_vec, type, mode);	
 			
 			pid_t pid = fork();
 			if(pid == 0){
-				if(mode == 0){
+				if(type == 0){
 					executeCmd(input_str_vec, paths);
 				}	
-				else if(mode == 1){
+				else if(type == 1){
 					int fd = open(processed_line[1][0].c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 					dup2(fd, 1);
 					dup2(fd, 2);
@@ -163,7 +186,7 @@ int main(int argc, char *argv[]){
 		while(1){
 			std::cout << "wish> ";
 			std::getline(std::cin, input_raw);
-			interpretCmd();
+			interpretCmd(0);
 		}
 	}
 	// ============================================= batch mode =============================================
@@ -174,7 +197,7 @@ int main(int argc, char *argv[]){
 			exit(1);
 		}
 		while(std::getline(batFile, input_raw)){
-			interpretCmd();
+			interpretCmd(0);
 		}
 		batFile.close();
 	}
@@ -184,4 +207,3 @@ int main(int argc, char *argv[]){
 	}
 	exit(0);
 }
-
