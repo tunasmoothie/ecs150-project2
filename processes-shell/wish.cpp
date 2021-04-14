@@ -181,7 +181,7 @@ int main(int argc, char *argv[]){
 			else if(type == 1){
 				pid_t pid = fork();
 				if(pid == 0){
-					int fd = open(processed_line[1][0].c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+					int fd = open(processed_line[1][0].c_str(), O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
 					dup2(fd, 1);
 					dup2(fd, 2);
 					close(fd);
