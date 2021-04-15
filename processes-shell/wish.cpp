@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
@@ -43,87 +44,100 @@ std::vector<std::string> convertInputToStrVec(std::string input_raw){
 	return converted;
 }
 
-std::vector<std::vector<std::string>> processLine(std::vector<std::string> line, int &type, const bool &mode){
-	std::vector<std::vector<std::string>> output;
+std::vector<std::vector<std::vector<std::string>>> processLine(std::vector<std::string> line, const bool &mode){
+	// ---------------- separate operators out -----------------
+	std::vector<std::string> line_separated;
 	
-	// 0 = Normal, 1 = Redirect, 2 = Parallel
-	type = 0;
+	for(auto str : line){
+		size_t pos_r = str.find(">");
+		size_t pos_p = str.find("&");
+		while(pos_r != std::string::npos || pos_p != std::string::npos){
+			if(pos_r < pos_p || pos_p == std::string::npos){
+				std::string s = str.substr(0, pos_r);
+				str = str.substr(pos_r+1, str.size());
+				s.erase(std::remove_if( s.begin(), s.end(), [](char c){return std::isspace(c);}), s.end());
+				if(!s.empty()) line_separated.push_back(s);
+				line_separated.push_back(">");
+			}
+			else{
+				std::string s = str.substr(0, pos_p);
+				str = str.substr(pos_p+1, str.size());
+				s.erase(std::remove_if( s.begin(), s.end(), [](char c){return std::isspace(c);}), s.end());
+				if(!s.empty()) line_separated.push_back(s);
+				line_separated.push_back("&");
+			}
+			
+			pos_r = str.find(">");
+			pos_p = str.find("&");
+		}
+		if(!str.empty()) line_separated.push_back(str);
+	}
 	
-	//separate operators out
-	for(size_t i = 0; i < line.size(); i++){
-		size_t symbolPos = line[i].find(">");
-		if(symbolPos != std::string::npos){
-			type = 1;
-			if(line[i].size() != 1){
-				std::string tmp = line[i];
-				line.pop_back();
-				int k = 0;
-				std::string p1 = tmp.substr(0, symbolPos);
-				std::string p2 = tmp.substr(symbolPos+1, tmp.size());
-				if(!p1.empty())
-					line.insert(line.begin()+i+(k++), p1);
-				line.insert(line.begin()+i+(k++), ">");
-				if(!p2.empty())
-					line.insert(line.begin()+i+(k++), p2);
-			}
-		}
-	}
-	for(size_t i = 0; i < line.size(); i++){
-		size_t symbolPos = line[i].find("&");
-		if(symbolPos != std::string::npos){
-			type = 2;
-			if(line[i].size() != 1){
-				std::string tmp = line[i];
-				line.pop_back();
-				int k = 0;
-				std::string p1 = tmp.substr(0, symbolPos);
-				std::string p2 = tmp.substr(symbolPos+1, tmp.size());
-				if(!p1.empty())
-					line.insert(line.begin()+i+(k++), p1);
-				line.insert(line.begin()+i+(k++), "&");
-				if(!p2.empty())
-					line.insert(line.begin()+i+(k++), p2);
-			}
-		}
-	}
-		
-		
-	if(type == 1){
-		int opCnt;
-		for(auto str : line)
-			if(str == ">") opCnt++;
-		if(line[0] == ">" || line[line.size()-1] == ">" || opCnt > 1){
-			printError();
-			if(mode == 1) exit(0);
-		}
-		else{
-			auto it = line.begin();
-			while(*it != ">") it++;
-			std::vector<std::string> cmd(line.begin(), it);
-			std::vector<std::string> file(it+1, it+2);
-			if(it+2 != line.end()){
-				printError();
-				if(mode == 1) exit(0);
-			}
-			output.push_back(cmd);
-			output.push_back(file);
-		}	
-	}
-	else if(type == 2){
-		auto it1 = line.begin(), it2 = line.begin();
-		while(it2 != line.end()){
-			if(*it2 == "&"){
+	
+	// --------- divide into chunks of cmds and operators ---------
+	std::vector<std::vector<std::string>> cmd_list;
+	auto it1 = line_separated.begin(), it2 = line_separated.begin();
+	while(it2 != line_separated.end()){
+		if(*it2 == "&" || *it2 == ">"){
+			if(it1 != it2){
 				std::vector<std::string> cmd(it1, it2);
-				output.push_back(cmd);
-				it1 = it2+1;
+				cmd_list.push_back(cmd);
 			}
-			it2++;
+			std::vector<std::string> op(it2, it2+1);
+			cmd_list.push_back(op);
+			it1 = it2+1;
 		}
-		std::vector<std::string> cmd(it1, line.end());
-		output.push_back(cmd);
+		it2++;
 	}
+	if(it1 != line_separated.end()){
+		std::vector<std::string> cmd(it1, line_separated.end());
+		cmd_list.push_back(cmd);
+	}
+	
+	// ------- determine how many threads needed & store in vector -------
+	std::vector<std::vector<std::vector<std::string>>> thread_list;
+	auto it3 = cmd_list.begin(), it4 = cmd_list.begin();
+	while(it4 != cmd_list.end()){
+		if((*it4).front() == "&"){
+			std::vector<std::vector<std::string>> cmd(it3, it4);
+			thread_list.push_back(cmd);
+			it3 = it4+1;
+		}
+		it4++;
+	}
+	std::vector<std::vector<std::string>> cmd(it3, cmd_list.end());
+	thread_list.push_back(cmd);
+	
+	/*
+	for(auto thr : thread_list){
+		for(auto cmd : thr){
+			for(auto str : cmd){
+				std::cout << str << " ";
+			}
+			std::cout << " | ";
+		}
+		std::cout << "\n";
+	}*/
+	
+	
+	/*
+	// ------------------ error detection -------------------
+	if(cmd_list[0][0] == ">" || cmd_list[cmd_list.size()-1][0] == ">"){
+		printError();
+		if(mode == 1) exit(0);
+	}
+*/
+	//std::cout << output[0][0] << "\n";
 
-	return output;
+/*
+	for(auto ch : output){
+		for(auto st : ch){
+			std::cout << st << "  ";
+		}
+		std::cout << "\n";
+	}
+	*/
+	return thread_list;
 }
 
 int main(int argc, char *argv[]){
@@ -143,7 +157,7 @@ int main(int argc, char *argv[]){
 			else
 				exit(0);
 		}
-		// -------- built-in commands --------
+		// ------------ built-in commands ------------
 		else if(input_str_vec[0] == "path"){
 			paths.clear();
 			paths.push_back("");
@@ -165,12 +179,54 @@ int main(int argc, char *argv[]){
 			else
 				printError();
 		}
-		// -------- external commands --------
+		// ------------ external commands ------------
 		else{
-			// 0 = Normal, 1 = Redirect, 2 = Parallel
-			int type = 0;
-			auto processed_line = processLine(input_str_vec, type, mode);	
+			auto proccessed_line = processLine(input_str_vec, mode);	
 			
+			int child_cnt;
+			for(auto cmd : proccessed_line){
+				if(cmd.empty())
+					continue;
+				else{
+					pid_t pid = fork();
+					// child
+					if(pid == 0){
+						if(!(cmd.size() == 1 || cmd.size() == 3)){
+							printError();
+							exit(0);
+						}
+						else{
+							if(cmd.size() == 3){
+								if(cmd[2].size() != 1);
+								else{
+									int fd = open(cmd[2][0].c_str(), O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+									dup2(fd, 1);
+									dup2(fd, 2);
+									close(fd);
+									executeCmd(cmd[0], paths);
+								}
+							}
+							else{
+								executeCmd(cmd[0], paths);
+							}
+							printError();
+							exit(0);
+						}
+					}
+					// parent
+					else{ 
+						child_cnt++;
+					}
+				}
+			}
+			
+			while(child_cnt != 0){
+				//std::cout << "child " << wait(NULL) << "terminated\n";
+				wait(NULL);
+				child_cnt--;
+			}
+			
+			/*
 			if(type == 0){
 				pid_t pid = fork();
 				if(pid == 0){
@@ -211,7 +267,7 @@ int main(int argc, char *argv[]){
 					wait(NULL);
 					child_cnt--;
 				}
-			}
+			}*/
 		}
 	    
 	};
