@@ -14,6 +14,7 @@ void printError(){
 	std::cerr << "An error has occurred" << std::endl;
 }
 
+// passes a command string into execv(), tries with all specified paths
 void executeCmd(const std::vector<std::string> &cmd_str, const std::vector<std::string> &paths){
 	char *args[cmd_str.size() + 1];
 					
@@ -34,6 +35,7 @@ void executeCmd(const std::vector<std::string> &cmd_str, const std::vector<std::
 	exit(1);
 }
 
+// seperates words from a string into a vector of strings, effectively removing whitespace
 std::vector<std::string> convertInputToStrVec(std::string input_raw){
 	std::istringstream ss(input_raw);
 	std::vector<std::string> converted;
@@ -44,6 +46,7 @@ std::vector<std::string> convertInputToStrVec(std::string input_raw){
 	return converted;
 }
 
+// command parsing
 std::vector<std::vector<std::vector<std::string>>> processLine(std::vector<std::string> line, const bool &mode){
 	// ---------------- separate operators out -----------------
 	std::vector<std::string> line_separated;
@@ -108,37 +111,10 @@ std::vector<std::vector<std::vector<std::string>>> processLine(std::vector<std::
 	std::vector<std::vector<std::string>> cmd(it3, cmd_list.end());
 	thread_list.push_back(cmd);
 	
-	/*
-	for(auto thr : thread_list){
-		for(auto cmd : thr){
-			for(auto str : cmd){
-				std::cout << str << " ";
-			}
-			std::cout << " | ";
-		}
-		std::cout << "\n";
-	}*/
-	
-	
-	/*
-	// ------------------ error detection -------------------
-	if(cmd_list[0][0] == ">" || cmd_list[cmd_list.size()-1][0] == ">"){
-		printError();
-		if(mode == 1) exit(0);
-	}
-*/
-	//std::cout << output[0][0] << "\n";
-
-/*
-	for(auto ch : output){
-		for(auto st : ch){
-			std::cout << st << "  ";
-		}
-		std::cout << "\n";
-	}
-	*/
 	return thread_list;
 }
+
+
 
 int main(int argc, char *argv[]){
 	std::string input_raw;
@@ -162,14 +138,18 @@ int main(int argc, char *argv[]){
 			paths.clear();
 			paths.push_back("");
 			for(size_t i = 1; i < input_str_vec.size(); i++){
-				if(input_str_vec[i][0] != '/')
-					input_str_vec[i] = "/" + input_str_vec[i];
 				if(input_str_vec[i][input_str_vec[i].size()-1] != '/')
 					input_str_vec[i] += "/";
-				char tmp[2048];
-				getcwd(tmp, 2048);
-				input_str_vec[i] = tmp + input_str_vec[i];
-				paths.push_back(input_str_vec[i]);
+				if(input_str_vec[i][0] == '/'){
+					paths.push_back(input_str_vec[i]);
+				}
+				else{
+					input_str_vec[i] = "/" + input_str_vec[i];
+					char tmp[2048];
+					getcwd(tmp, 2048);
+					input_str_vec[i] = tmp + input_str_vec[i];
+					paths.push_back(input_str_vec[i]);
+				}
 			}
 		}
 		else if(input_str_vec[0] == "cd"){
@@ -199,7 +179,8 @@ int main(int argc, char *argv[]){
 							if(cmd.size() == 3){
 								if(cmd[2].size() != 1);
 								else{
-									int fd = open(cmd[2][0].c_str(), O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+									int fd; 
+									fd = open((cmd[2][0]).c_str(), O_RDWR | O_CREAT | O_TRUNC);
 									dup2(fd, 1);
 									dup2(fd, 2);
 									close(fd);
@@ -221,53 +202,10 @@ int main(int argc, char *argv[]){
 			}
 			
 			while(child_cnt != 0){
-				//std::cout << "child " << wait(NULL) << "terminated\n";
 				wait(NULL);
 				child_cnt--;
 			}
 			
-			/*
-			if(type == 0){
-				pid_t pid = fork();
-				if(pid == 0){
-					executeCmd(input_str_vec, paths);
-				}
-				else wait(NULL);
-			}
-			else if(type == 1){
-				pid_t pid = fork();
-				if(pid == 0){
-					int fd = open(processed_line[1][0].c_str(), O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
-					dup2(fd, 1);
-					dup2(fd, 2);
-					close(fd);
-					executeCmd(processed_line[0], paths);
-					exit(0);
-				}
-				else wait(NULL);
-			}
-			else if(type == 2){
-				int child_cnt;
-				
-				for(auto cmd : processed_line){
-					if(cmd.empty())
-						continue;
-					
-					pid_t pid = fork();
-					if(pid == 0){
-						executeCmd(cmd, paths);
-					}
-					else{
-						child_cnt++;
-					}
-				}
-				
-				while(child_cnt != 0){
-					//std::cout << "child " << wait(NULL) << "terminated\n";
-					wait(NULL);
-					child_cnt--;
-				}
-			}*/
 		}
 	    
 	};
