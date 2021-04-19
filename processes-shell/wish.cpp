@@ -76,7 +76,6 @@ std::vector<std::vector<std::vector<std::string>>> processLine(std::vector<std::
 		if(!str.empty()) line_separated.push_back(str);
 	}
 	
-	
 	// --------- divide into chunks of cmds and operators ---------
 	std::vector<std::vector<std::string>> cmd_list;
 	auto it1 = line_separated.begin(), it2 = line_separated.begin();
@@ -113,7 +112,6 @@ std::vector<std::vector<std::vector<std::string>>> processLine(std::vector<std::
 	
 	return thread_list;
 }
-
 
 
 int main(int argc, char *argv[]){
@@ -200,14 +198,11 @@ int main(int argc, char *argv[]){
 					}
 				}
 			}
-			
 			while(child_cnt != 0){
 				wait(NULL);
 				child_cnt--;
 			}
-			
-		}
-	    
+		}  
 	};
 	
 	// ============================================= interactive mode =============================================
